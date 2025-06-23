@@ -1,101 +1,109 @@
-# Conversational AI Assistant (Amazon Bedrock + Llama 4 Maverick)
+# Text Generation API Service
 
-This project provides a conversational AI assistant using Amazon Bedrock with the Llama 4 Maverick 17B Instruct model. It supports context management, error handling, and both CLI and programmatic usage.
+A REST API wrapper around the existing AWS Bedrock ConversationalAI system with content filtering, usage monitoring, and security features.
 
----
+## 🚀 Quick Start
 
-## Installation
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- Requires Python 3.8+
-- Install dependencies:
-  ```bash
-  pip install boto3 botocore
-  ```
-- AWS credentials must be configured (see [AWS docs](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)).
+2. **Run the service:**
+   ```bash
+   chmod +x run_api.sh
+   ./run_api.sh
+   ```
 
----
+3. **Test the API:**
+   ```bash
+   python test_api.py
+   ```
 
-## CLI Usage
+## 📋 API Endpoints
 
-Run the assistant interactively:
-
+### Health Check
 ```bash
-python chat.py [--region REGION] [--model MODEL_ID] [--max-tokens N] [--temperature T] [--conversation-id ID]
+GET /health
 ```
 
-**Options:**
-- `--region`         AWS region (default: us-east-1)
-- `--model`          Model or inference profile ID (default: us.meta.llama4-maverick-17b-instruct-v1:0)
-- `--max-tokens`     Max tokens for generation (default: 512)
-- `--temperature`    Sampling temperature (default: 0.7)
-- `--conversation-id` Continue an existing conversation by ID
+### Text Generation
+```bash
+POST /generate
+Headers: X-API-Key: demo-key-123
+Content-Type: application/json
 
-**Commands in CLI:**
-- `quit`   Exit
-- `info`   Show conversation details
-- `reset`  Clear conversation history
+{
+  "prompt": "Write a story about AI",
+  "max_tokens": 512,
+  "temperature": 0.7
+}
+```
 
----
+### Usage Metrics
+```bash
+GET /metrics
+Headers: X-API-Key: demo-key-123
+```
 
-## Programmatic API
+## 🔒 Security Features
 
-### Main Classes
+- **API Key Authentication**: Required for `/generate` and `/metrics`
+- **Rate Limiting**: 10 requests/minute per IP for generation
+- **Input Validation**: Length and content checks
+- **Content Filtering**: AWS Comprehend toxicity detection + keyword filtering
 
-- `ConversationalAI(config=None, memory_store=None)`
-  - Main entry point. Handles chat, context, and Bedrock API.
-- `BedrockConfig` — Model/configuration options
-- `InMemoryStore` — In-memory conversation storage
-- `ConversationContext` — Conversation state
+## 📊 Usage Monitoring
 
-### Example: Basic Chat
+Tracks:
+- Total requests
+- Success/error rates
+- Response times
+- Content filter hits
+- Requests per minute
+
+## 🛡️ Content Filtering
+
+- **AWS Comprehend**: Toxicity detection
+- **Keyword filtering**: Basic inappropriate content blocking
+- **Input validation**: Length limits and format checks
+- **Output sanitization**: Response filtering
+
+## ⚙️ Configuration
+
+Environment variables:
+- `API_KEY`: Authentication key (default: demo-key-123)
+- `MAX_TOKENS`: Default max tokens (default: 512)
+- `TEMPERATURE`: Default temperature (default: 0.7)
+- `AWS_DEFAULT_REGION`: AWS region (default: us-east-1)
+
+## 🧪 Example Usage
 
 ```python
-from chat import ConversationalAI
+import requests
 
-ai = ConversationalAI()
-result = ai.chat("Hello!")
-print(result["response"])
+headers = {"X-API-Key": "demo-key-123"}
+data = {
+    "prompt": "Explain quantum computing in simple terms",
+    "max_tokens": 300,
+    "temperature": 0.5
+}
+
+response = requests.post(
+    "http://localhost:8000/generate",
+    headers=headers,
+    json=data
+)
+
+print(response.json()["generated_text"])
 ```
 
-### Example: Continue a Conversation
+## 📁 Project Structure
 
-```python
-conv_id = None
-ai = ConversationalAI()
+- `text_gen_api.py` - Main Flask API service
+- `content_filter.py` - Content filtering logic
+- `usage_metrics.py` - Metrics collection
+- `test_api.py` - API testing script
+- `chat.py` - Existing AI service (unchanged)
 
-# First message
-resp1 = ai.chat("Hi!", conversation_id=conv_id)
-conv_id = resp1["conversation_id"]
-
-# Next message
-resp2 = ai.chat("Tell me a joke.", conversation_id=conv_id)
-print(resp2["response"])
-```
-
-### Example: Get/Reset Conversation Info
-
-```python
-info = ai.get_conversation_info(conv_id)
-ai.reset_conversation(conv_id)
-```
-
----
-
-## Public API Methods
-
-- `ConversationalAI.chat(message, conversation_id=None)` → `{response, conversation_id, message_count, timestamp}`
-- `ConversationalAI.get_conversation_info(conversation_id)` → dict or None
-- `ConversationalAI.reset_conversation(conversation_id)` → bool
-
----
-
-## Testing
-
-Tests are in `test.py` and use `pytest` and `unittest.mock` for AWS mocking.
-
----
-
-## Notes
-- Requires AWS Bedrock access and correct permissions.
-- Handles context, retries, and error cases robustly.
-- All context is in-memory by default (see `InMemoryStore`).
+Built on top of existing AWS Bedrock ConversationalAI system. 
